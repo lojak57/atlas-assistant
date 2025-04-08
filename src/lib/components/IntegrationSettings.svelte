@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { integrationStatus, updateIntegrationStatus } from '$lib/stores/atlas';
-  import { notionService, gmailService, githubService, icloudService } from '$lib/services';
+  import { gmailService, githubService, icloudService } from '$lib/services';
 
   let status = $derived($integrationStatus);
   let iCloudUsername = $state('');
@@ -26,19 +26,35 @@
     }
   });
 
-  // Connect to Notion via OAuth
+  // Connect to Notion via OAuth (disabled for now)
   function connectNotion() {
-    window.location.href = '/api/auth/notion';
+    // Notion integration removed for now
+    console.log('Notion integration is not available yet');
+    alert('Notion integration is not available yet');
   }
 
   // Connect to Gmail via OAuth
-  function connectGmail() {
-    window.location.href = '/api/auth/google';
+  async function connectGmail() {
+    try {
+      const state = Math.random().toString(36).substring(2, 15);
+      const authUrl = await gmailService.getAuthUrl(state);
+      window.location.href = authUrl;
+    } catch (error) {
+      console.error('Error getting Gmail auth URL:', error);
+      alert('Failed to connect to Gmail. Please try again later.');
+    }
   }
 
   // Connect to GitHub via OAuth
   function connectGitHub() {
-    window.location.href = '/api/auth/github';
+    try {
+      const state = Math.random().toString(36).substring(2, 15);
+      const authUrl = githubService.getAuthUrl(state);
+      window.location.href = authUrl;
+    } catch (error) {
+      console.error('Error getting GitHub auth URL:', error);
+      alert('Failed to connect to GitHub. Please try again later.');
+    }
   }
 
   // Connect to iCloud via form submission
@@ -79,7 +95,8 @@
     try {
       switch (service) {
         case 'notion':
-          await notionService.disconnect();
+          // Notion service removed for now
+          console.log('Notion service not available');
           break;
         case 'gmail':
           await gmailService.disconnect();

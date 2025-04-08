@@ -1,6 +1,5 @@
 import { Octokit } from '@octokit/rest';
 import type { GitHubIntegration } from '$lib/types';
-import { env } from '$env/dynamic/private';
 import { ragService } from './index';
 
 export interface GitHubRepository {
@@ -49,8 +48,8 @@ export class GitHubService implements GitHubIntegration {
    */
   async connect(accessToken?: string): Promise<boolean> {
     try {
-      // Use provided token or fall back to environment variable
-      this.token = accessToken || env.GITHUB_TOKEN;
+      // Use provided token
+      this.token = accessToken;
 
       if (!this.token) {
         console.error('No GitHub access token provided');
@@ -82,6 +81,28 @@ export class GitHubService implements GitHubIntegration {
     this.username = null;
     this.isConnected = false;
     console.log('Disconnected from GitHub');
+  }
+
+  /**
+   * Get the GitHub OAuth authorization URL
+   */
+  getAuthUrl(state: string): string {
+    // This will be called after fetching the client ID from the server
+    const clientId = window.atlasConfig?.github?.clientId;
+    const redirectUri = window.atlasConfig?.github?.redirectUri;
+
+    if (!clientId || !redirectUri) {
+      throw new Error('GitHub client configuration not available');
+    }
+
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      state,
+      scope: 'repo user'
+    });
+
+    return `https://github.com/login/oauth/authorize?${params.toString()}`;
   }
 
   /**

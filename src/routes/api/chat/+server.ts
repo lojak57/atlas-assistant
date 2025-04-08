@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { ragService, notionService, gmailService, githubService, icloudService } from '$lib/services';
+import { ragService, gmailService, githubService, icloudService } from '$lib/services';
 
 export const POST: RequestHandler = async ({ request }) => {
   try {
@@ -26,7 +26,7 @@ export const POST: RequestHandler = async ({ request }) => {
     let integrationContext = 'Currently connected integrations: ';
     const connectedIntegrations = [];
 
-    if (notionService.isConnected) connectedIntegrations.push('Notion');
+    // Notion integration removed for now
     if (gmailService.isConnected) connectedIntegrations.push('Gmail');
     if (githubService.isConnected) connectedIntegrations.push('GitHub');
     if (icloudService.isConnected) connectedIntegrations.push('iCloud');

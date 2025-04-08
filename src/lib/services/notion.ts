@@ -1,6 +1,5 @@
 import { Client } from '@notionhq/client';
 import type { NotionIntegration } from '$lib/types';
-import { env } from '$env/dynamic/private';
 import { ragService } from './index';
 
 export interface NotionPage {
@@ -217,7 +216,7 @@ export class NotionService implements NotionIntegration {
       const content = await this.getPageContent(pageId);
 
       // Extract text content from blocks
-      const textContent = this.extractTextFromBlocks(content);
+      const textContent = await this.extractTextFromBlocks(content);
 
       // Add page title
       const title = this.extractPageTitle(page);
@@ -293,7 +292,7 @@ export class NotionService implements NotionIntegration {
   /**
    * Helper method to extract text from blocks
    */
-  private extractTextFromBlocks(blocks: any[]): string {
+  private async extractTextFromBlocks(blocks: any[]): Promise<string> {
     let text = '';
 
     for (const block of blocks) {
@@ -383,7 +382,7 @@ export class NotionService implements NotionIntegration {
           });
 
           if (childBlocks?.results) {
-            text += this.extractTextFromBlocks(childBlocks.results) + '\n';
+            text += await this.extractTextFromBlocks(childBlocks.results) + '\n';
           }
         } catch (error) {
           console.error(`Error getting child blocks for ${block.id}:`, error);

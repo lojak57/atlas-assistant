@@ -8,6 +8,22 @@ declare global {
 		// interface PageState {}
 		// interface Platform {}
 	}
+
+	interface Window {
+		atlasConfig?: {
+			github?: {
+				clientId: string;
+				redirectUri: string;
+			};
+			google?: {
+				clientId: string;
+				redirectUri: string;
+			};
+			app?: {
+				url: string;
+			};
+		};
+	}
 }
 
 export {};

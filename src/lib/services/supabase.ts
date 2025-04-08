@@ -1,12 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
-import { env } from '$env/dynamic/private';
 import type { EmbeddingResult } from './openai';
 
-// Initialize Supabase client
-const supabase = createClient(
-  env.SUPABASE_URL,
-  env.SUPABASE_KEY
-);
+// Client-side service that calls the server API endpoints
 
 export interface Document {
   id?: string;
@@ -36,22 +30,32 @@ export class SupabaseVectorService {
   }
 
   /**
-   * Insert a document with its embedding into the vector store
+   * Insert a document with its embedding into the vector store via server endpoint
    */
   async insertDocument(document: Document): Promise<string> {
     try {
-      const { data, error } = await supabase
-        .from(this.tableName)
-        .insert({
-          content: document.content,
-          embedding: document.embedding,
-          metadata: document.metadata || {},
-          source: document.source || 'unknown'
+      const response = await fetch('/api/supabase', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'insert_document',
+          data: {
+            content: document.content,
+            embedding: document.embedding,
+            metadata: document.metadata || {},
+            source: document.source || 'unknown'
+          }
         })
-        .select('id')
-        .single();
+      });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to insert document into vector store');
+      }
+
+      const data = await response.json();
       return data.id;
     } catch (error) {
       console.error('Error inserting document:', error);
@@ -60,24 +64,28 @@ export class SupabaseVectorService {
   }
 
   /**
-   * Insert multiple documents with their embeddings into the vector store
+   * Insert multiple documents with their embeddings into the vector store via server endpoint
    */
   async insertDocuments(documents: Document[]): Promise<string[]> {
     try {
-      const { data, error } = await supabase
-        .from(this.tableName)
-        .insert(
-          documents.map(doc => ({
-            content: doc.content,
-            embedding: doc.embedding,
-            metadata: doc.metadata || {},
-            source: doc.source || 'unknown'
-          }))
-        )
-        .select('id');
+      const response = await fetch('/api/supabase', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'insert_documents',
+          data: { documents }
+        })
+      });
 
-      if (error) throw error;
-      return data.map(item => item.id);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to insert documents into vector store');
+      }
+
+      const data = await response.json();
+      return data.ids;
     } catch (error) {
       console.error('Error inserting documents:', error);
       throw new Error('Failed to insert documents into vector store');
@@ -85,20 +93,31 @@ export class SupabaseVectorService {
   }
 
   /**
-   * Search for similar documents using vector similarity
+   * Search for similar documents using vector similarity via server endpoint
    */
   async similaritySearch(embedding: number[], limit = 5): Promise<Document[]> {
     try {
-      // In a real implementation, you would use pgvector's similarity search
-      // This is a placeholder that simulates the functionality
-      const { data, error } = await supabase.rpc('match_documents', {
-        query_embedding: embedding,
-        match_threshold: 0.7,
-        match_count: limit
+      const response = await fetch('/api/supabase', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'similarity_search',
+          data: {
+            embedding,
+            limit,
+            threshold: 0.7
+          }
+        })
       });
 
-      if (error) throw error;
-      return data;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to search for similar documents');
+      }
+
+      return await response.json();
     } catch (error) {
       console.error('Error searching for similar documents:', error);
       throw new Error('Failed to search for similar documents');
@@ -106,16 +125,25 @@ export class SupabaseVectorService {
   }
 
   /**
-   * Delete a document from the vector store
+   * Delete a document from the vector store via server endpoint
    */
   async deleteDocument(id: string): Promise<void> {
     try {
-      const { error } = await supabase
-        .from(this.tableName)
-        .delete()
-        .eq('id', id);
+      const response = await fetch('/api/supabase', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'delete_document',
+          data: { id }
+        })
+      });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete document from vector store');
+      }
     } catch (error) {
       console.error('Error deleting document:', error);
       throw new Error('Failed to delete document from vector store');
@@ -123,16 +151,24 @@ export class SupabaseVectorService {
   }
 
   /**
-   * Delete all documents from the vector store
+   * Delete all documents from the vector store via server endpoint
    */
   async deleteAllDocuments(): Promise<void> {
     try {
-      const { error } = await supabase
-        .from(this.tableName)
-        .delete()
-        .neq('id', '0'); // Delete all rows
+      const response = await fetch('/api/supabase', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'delete_all_documents'
+        })
+      });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete all documents from vector store');
+      }
     } catch (error) {
       console.error('Error deleting all documents:', error);
       throw new Error('Failed to delete all documents from vector store');
