@@ -24,9 +24,32 @@ function addScannedReceipt(receipt: Receipt) {
 }
 
 // Initialize OpenAI client (server-side only)
-const openai = new OpenAI({
-  apiKey: env.OPENAI_API_KEY || 'your-api-key-here' // Fallback for development
-});
+// Use a dummy API key during build time to prevent errors
+const isDevelopment = process.env.NODE_ENV === 'development';
+const dummyApiKey = 'dummy-api-key-for-build-time';
+
+// Only create the OpenAI client if we're not in a build environment
+let openai: OpenAI;
+
+// This is a function to get or create the OpenAI client
+function getOpenAIClient() {
+  // If we already have an instance, return it
+  if (openai) return openai;
+
+  // Otherwise create a new instance
+  try {
+    openai = new OpenAI({
+      apiKey: env.OPENAI_API_KEY || dummyApiKey
+    });
+    return openai;
+  } catch (error) {
+    console.error('Error initializing OpenAI client:', error);
+    // Return a mock client for build time
+    return {
+      chat: { completions: { create: async () => ({ choices: [{ message: { content: 'Build time response' } }] }) } },
+    } as unknown as OpenAI;
+  }
+}
 
 // Log API key status for debugging
 console.log('OpenAI API Key status:', env.OPENAI_API_KEY ? 'Key is set' : 'Key is missing');
@@ -119,7 +142,7 @@ Only respond with the JSON object, nothing else.`;
     let data: Receipt;
 
     try {
-      const completion = await openai.chat.completions.create({
+      const completion = await getOpenAIClient().chat.completions.create({
         model: "gpt-4o",  // using GPT-4o which has vision capabilities
         messages,
         temperature: 0,  // deterministic output

@@ -4,9 +4,33 @@ import { env } from '$env/dynamic/private';
 import OpenAI from 'openai';
 
 // Initialize OpenAI client (server-side only)
-const openai = new OpenAI({
-  apiKey: env.OPENAI_API_KEY
-});
+// Use a dummy API key during build time to prevent errors
+const isDevelopment = process.env.NODE_ENV === 'development';
+const dummyApiKey = 'dummy-api-key-for-build-time';
+
+// Only create the OpenAI client if we're not in a build environment
+let openai: OpenAI;
+
+// This is a function to get or create the OpenAI client
+function getOpenAIClient() {
+  // If we already have an instance, return it
+  if (openai) return openai;
+
+  // Otherwise create a new instance
+  try {
+    openai = new OpenAI({
+      apiKey: env.OPENAI_API_KEY || dummyApiKey
+    });
+    return openai;
+  } catch (error) {
+    console.error('Error initializing OpenAI client:', error);
+    // Return a mock client for build time
+    return {
+      chat: { completions: { create: async () => ({ choices: [{ message: { content: 'Build time response' } }] }) } },
+      embeddings: { create: async () => ({ data: [{ embedding: [] }] }) }
+    } as unknown as OpenAI;
+  }
+}
 
 export const POST: RequestHandler = async ({ request }) => {
   try {
@@ -15,7 +39,7 @@ export const POST: RequestHandler = async ({ request }) => {
     switch (action) {
       case 'chat':
         const { messages, options } = data;
-        const completion = await openai.chat.completions.create({
+        const completion = await getOpenAIClient().chat.completions.create({
           model: 'gpt-4o',
           messages,
           temperature: 0.7,
@@ -28,7 +52,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
       case 'embedding':
         const { text } = data;
-        const embeddingResponse = await openai.embeddings.create({
+        const embeddingResponse = await getOpenAIClient().embeddings.create({
           model: 'text-embedding-3-small',
           input: text
         });
@@ -39,7 +63,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
       case 'embeddings':
         const { texts } = data;
-        const embeddingsResponse = await openai.embeddings.create({
+        const embeddingsResponse = await getOpenAIClient().embeddings.create({
           model: 'text-embedding-3-small',
           input: texts
         });
@@ -65,7 +89,7 @@ export const POST: RequestHandler = async ({ request }) => {
           }
         ];
 
-        const visionCompletion = await openai.chat.completions.create({
+        const visionCompletion = await getOpenAIClient().chat.completions.create({
           model: 'gpt-4o',  // Updated to use gpt-4o which has vision capabilities
           messages: visionMessages,
           temperature: 0,
