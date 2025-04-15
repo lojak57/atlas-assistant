@@ -1,4 +1,5 @@
 export interface Receipt {
+  id?: string;
   date: string;
   vendor: string;
   total: number | string;

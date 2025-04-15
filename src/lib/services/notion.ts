@@ -1,6 +1,7 @@
 import { Client } from '@notionhq/client';
 import type { NotionIntegration } from '$lib/types';
 import { ragService } from './index';
+import { env } from '$env/dynamic/private';
 
 export interface NotionPage {
   id: string;

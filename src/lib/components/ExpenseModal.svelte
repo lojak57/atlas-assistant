@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
-  import { fade, fly, scale } from 'svelte/transition';
+  import { fade, scale } from 'svelte/transition';
   import { quintOut } from 'svelte/easing';
   import type { Receipt } from '$lib/types/receipt';
 
@@ -74,15 +74,25 @@
 </script>
 
 {#if isOpen}
+  <!-- Accessible modal dialog -->
   <div
-    class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+    class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 p-4 flex items-center justify-center"
     transition:fade={{ duration: 200 }}
-    on:click={handleClose}
+    aria-hidden="true"
+  >
+    <!-- This is just a backdrop -->
+  </div>
+
+  <div
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modal-title"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4"
+    tabindex="-1"
   >
     <div
       class="bg-white/95 backdrop-blur-md rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-neutral-200"
       transition:scale={{ duration: 200, start: 0.95, opacity: 0, easing: quintOut }}
-      on:click|stopPropagation={() => {}}
     >
       <!-- Modal Header -->
       <div class="border-b border-neutral-200 px-6 py-4 flex justify-between items-center bg-white/80">
