@@ -1,6 +1,6 @@
 import { google } from 'googleapis';
 import type { Receipt } from '$lib/types/receipt';
-import { GOOGLE_SERVICE_ACCOUNT_JSON, GOOGLE_SHEETS_ID } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 
 // Google Sheets API constants
 const SHEET_NAME = 'Receipts';
@@ -12,7 +12,8 @@ const RECEIPT_FIELDS = ['date', 'vendor', 'total', 'tax', 'category', 'notes'];
 // Setup Google Sheets client using service account credentials
 const getAuthClient = () => {
   try {
-    const credentials = GOOGLE_SERVICE_ACCOUNT_JSON ? JSON.parse(GOOGLE_SERVICE_ACCOUNT_JSON) : undefined;
+    const serviceAccountJson = env.GOOGLE_SERVICE_ACCOUNT_JSON;
+    const credentials = serviceAccountJson ? JSON.parse(serviceAccountJson) : undefined;
     return new google.auth.GoogleAuth({
       credentials,
       scopes: ['https://www.googleapis.com/auth/spreadsheets']
@@ -34,7 +35,8 @@ const getSheetsClient = async () => {
  */
 export const appendReceipt = async (receipt: Receipt): Promise<boolean> => {
   try {
-    if (!GOOGLE_SHEETS_ID) {
+    const sheetsId = env.GOOGLE_SHEETS_ID;
+    if (!sheetsId) {
       console.warn('No Google Sheet ID configured; skipping Sheets logging.');
       return false;
     }
@@ -50,7 +52,7 @@ export const appendReceipt = async (receipt: Receipt): Promise<boolean> => {
     })];
 
     await sheetsApi.spreadsheets.values.append({
-      spreadsheetId: GOOGLE_SHEETS_ID,
+      spreadsheetId: sheetsId,
       range: SHEET_NAME, // Sheet name
       valueInputOption: 'USER_ENTERED',
       requestBody: { values }
@@ -68,7 +70,8 @@ export const appendReceipt = async (receipt: Receipt): Promise<boolean> => {
  */
 export const getAllReceipts = async (): Promise<Receipt[]> => {
   try {
-    if (!GOOGLE_SHEETS_ID) {
+    const sheetsId = env.GOOGLE_SHEETS_ID;
+    if (!sheetsId) {
       console.warn('No Google Sheet ID configured; cannot fetch receipts.');
       return [];
     }
@@ -76,7 +79,7 @@ export const getAllReceipts = async (): Promise<Receipt[]> => {
     const sheetsApi = await getSheetsClient();
 
     const response = await sheetsApi.spreadsheets.values.get({
-      spreadsheetId: GOOGLE_SHEETS_ID,
+      spreadsheetId: sheetsId,
       range: SHEET_NAME, // Sheet name
     });
 
@@ -117,7 +120,8 @@ export const getAllReceipts = async (): Promise<Receipt[]> => {
  */
 export const initializeSheet = async (): Promise<boolean> => {
   try {
-    if (!GOOGLE_SHEETS_ID) {
+    const sheetsId = env.GOOGLE_SHEETS_ID;
+    if (!sheetsId) {
       console.warn('No Google Sheet ID configured; cannot initialize sheet.');
       return false;
     }
@@ -126,14 +130,14 @@ export const initializeSheet = async (): Promise<boolean> => {
 
     // Check if the sheet exists and has headers
     const response = await sheetsApi.spreadsheets.values.get({
-      spreadsheetId: GOOGLE_SHEETS_ID,
+      spreadsheetId: sheetsId,
       range: `${SHEET_NAME}!A1:F1`,
     }).catch(() => null);
 
     // If no data or empty first row, add headers
     if (!response || !response.data.values || response.data.values.length === 0) {
       await sheetsApi.spreadsheets.values.append({
-        spreadsheetId: GOOGLE_SHEETS_ID,
+        spreadsheetId: sheetsId,
         range: SHEET_NAME,
         valueInputOption: 'USER_ENTERED',
         requestBody: {
@@ -155,7 +159,8 @@ export const initializeSheet = async (): Promise<boolean> => {
  */
 export const exportToSheet = async (receipts: Receipt[]): Promise<string> => {
   try {
-    if (!GOOGLE_SHEETS_ID) {
+    const sheetsId = env.GOOGLE_SHEETS_ID;
+    if (!sheetsId) {
       console.warn('No Google Sheet ID configured; cannot export receipts.');
       return '';
     }
@@ -168,7 +173,7 @@ export const exportToSheet = async (receipts: Receipt[]): Promise<string> => {
 
     // First, create a new sheet
     const addSheetResponse = await sheetsApi.spreadsheets.batchUpdate({
-      spreadsheetId: GOOGLE_SHEETS_ID,
+      spreadsheetId: sheetsId,
       requestBody: {
         requests: [{
           addSheet: {
@@ -189,7 +194,7 @@ export const exportToSheet = async (receipts: Receipt[]): Promise<string> => {
 
     // Add headers to the new sheet
     await sheetsApi.spreadsheets.values.append({
-      spreadsheetId: GOOGLE_SHEETS_ID,
+      spreadsheetId: sheetsId,
       range: exportName,
       valueInputOption: 'USER_ENTERED',
       requestBody: {
@@ -210,7 +215,7 @@ export const exportToSheet = async (receipts: Receipt[]): Promise<string> => {
     // Add receipt data to the new sheet
     if (values.length > 0) {
       await sheetsApi.spreadsheets.values.append({
-        spreadsheetId: GOOGLE_SHEETS_ID,
+        spreadsheetId: sheetsId,
         range: exportName,
         valueInputOption: 'USER_ENTERED',
         requestBody: { values }
@@ -218,7 +223,7 @@ export const exportToSheet = async (receipts: Receipt[]): Promise<string> => {
     }
 
     // Return the URL to the Google Sheet
-    return `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEETS_ID}/edit#gid=${newSheetId}`;
+    return `https://docs.google.com/spreadsheets/d/${sheetsId}/edit#gid=${newSheetId}`;
   } catch (error) {
     console.error('Error exporting to Google Sheets:', error);
     return '';
@@ -229,9 +234,10 @@ export const exportToSheet = async (receipts: Receipt[]): Promise<string> => {
  * Get the URL to the Google Sheet
  */
 export const getGoogleSheetUrl = (): string => {
-  if (!GOOGLE_SHEETS_ID) {
+  const sheetsId = env.GOOGLE_SHEETS_ID;
+  if (!sheetsId) {
     return '';
   }
 
-  return `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEETS_ID}/edit`;
+  return `https://docs.google.com/spreadsheets/d/${sheetsId}/edit`;
 };
