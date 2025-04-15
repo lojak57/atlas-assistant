@@ -14,62 +14,46 @@
     save: Receipt;
   }>();
 
-  // Local state for editing
+  // Local state
   let editMode = false;
-  let editedReceipt: Receipt;
+  let editedReceipt: Receipt = { ...receipt };
 
-  // Initialize the edited receipt when the component is mounted or receipt changes
-  $: if (receipt) {
-    editedReceipt = { ...receipt };
-  }
-
-  // Handle close button click
-  function handleClose() {
-    editMode = false;
-    dispatch('close');
-  }
-
-  // Handle edit button click
-  function handleEdit() {
-    editMode = true;
-  }
-
-  // Handle save button click
-  function handleSave() {
-    dispatch('save', editedReceipt);
-    editMode = false;
-  }
-
-  // Handle cancel edit button click
-  function handleCancelEdit() {
-    editedReceipt = { ...receipt };
-    editMode = false;
-  }
-
-  // Format currency values
+  // Format currency
   function formatCurrency(value: number | string): string {
-    if (typeof value === 'string') {
-      value = parseFloat(value.replace(/[^0-9.-]+/g, ''));
-    }
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD'
-    }).format(value || 0);
+    }).format(numValue);
   }
 
-  // Format date for display
+  // Format date
   function formatDate(dateStr: string): string {
-    if (!dateStr) return 'N/A';
-    try {
-      const date = new Date(dateStr);
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-    } catch (e) {
-      return dateStr;
-    }
+    const date = new Date(dateStr);
+    return new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    }).format(date);
+  }
+
+  // Event handlers
+  function handleClose() {
+    dispatch('close');
+  }
+
+  function handleEdit() {
+    editMode = true;
+    editedReceipt = { ...receipt };
+  }
+
+  function handleCancelEdit() {
+    editMode = false;
+  }
+
+  function handleSave() {
+    dispatch('save', editedReceipt);
+    editMode = false;
   }
 
   // Handle keyboard events
@@ -83,32 +67,32 @@
 <svelte:window on:keydown={isOpen ? handleKeydown : null} />
 
 {#if isOpen}
-  <!-- Accessible modal dialog -->
+  <!-- Backdrop -->
   <div
-    class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 p-4 flex items-center justify-center"
+    class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
     transition:fade={{ duration: 200 }}
     aria-hidden="true"
-  >
-    <!-- This is just a backdrop -->
-  </div>
-
+  ></div>
+  
+  <!-- Dialog -->
   <div
     role="dialog"
     aria-modal="true"
     aria-labelledby="modal-title"
-    class="fixed inset-0 z-50 flex items-center justify-center p-4"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 outline-none"
     tabindex="-1"
   >
-    <div
+    <!-- Modal content -->
+    <div 
       class="bg-white/95 backdrop-blur-md rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-neutral-200"
       transition:scale={{ duration: 200, start: 0.95, opacity: 0, easing: quintOut }}
     >
       <!-- Modal Header -->
       <div class="border-b border-neutral-200 px-6 py-4 flex justify-between items-center bg-white/80">
-        <h3 class="text-xl font-semibold text-neutral-800">
+        <h3 id="modal-title" class="text-xl font-semibold text-neutral-800">
           {editMode ? 'Edit Expense' : 'Expense Details'}
         </h3>
-        <button
+        <button 
           on:click={handleClose}
           class="text-neutral-500 hover:text-neutral-700 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-full p-1"
           aria-label="Close modal"
@@ -219,10 +203,12 @@
                 <p class="font-medium">{receipt.tax ? formatCurrency(receipt.tax) : 'N/A'}</p>
               </div>
 
-              <div>
-                <p class="text-sm text-gray-500">Receipt ID</p>
-                <p class="font-medium text-gray-600 text-sm">{receipt.id || 'Not assigned'}</p>
-              </div>
+              {#if receipt.id}
+                <div>
+                  <p class="text-sm text-gray-500">Receipt ID</p>
+                  <p class="font-medium text-gray-600 text-sm">{receipt.id}</p>
+                </div>
+              {/if}
             </div>
 
             {#if receipt.notes}
