@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { OPENAI_API_KEY, GOOGLE_SERVICE_ACCOUNT_JSON, GOOGLE_SHEETS_ID } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import OpenAI from 'openai';
 import { appendReceipt } from '$lib/services/googleSheets';
 import type { Receipt } from '$lib/types/receipt';
@@ -25,11 +25,11 @@ function addScannedReceipt(receipt: Receipt) {
 
 // Initialize OpenAI client (server-side only)
 const openai = new OpenAI({
-  apiKey: OPENAI_API_KEY || 'your-api-key-here' // Fallback for development
+  apiKey: env.OPENAI_API_KEY || 'your-api-key-here' // Fallback for development
 });
 
 // Log API key status for debugging
-console.log('OpenAI API Key status:', OPENAI_API_KEY ? 'Key is set' : 'Key is missing');
+console.log('OpenAI API Key status:', env.OPENAI_API_KEY ? 'Key is set' : 'Key is missing');
 
 // Define the fields we expect (could also be dynamic per client config)
 const RECEIPT_FIELDS = ['date', 'vendor', 'total', 'tax', 'category', 'notes'];
@@ -61,7 +61,7 @@ export const POST: RequestHandler = async ({ request }) => {
       };
 
       // Save to Google Sheets if configured
-      if (outputFormat === 'json' && GOOGLE_SHEETS_ID) {
+      if (outputFormat === 'json' && env.GOOGLE_SHEETS_ID) {
         try {
           await appendReceipt(mockReceipt);
         } catch (sheetErr) {
@@ -114,7 +114,7 @@ Only respond with the JSON object, nothing else.`;
     ];
 
     // 3. Call OpenAI Vision API
-    console.log('Calling OpenAI Vision API with API key:', OPENAI_API_KEY ? 'Key is set' : 'Key is missing');
+    console.log('Calling OpenAI Vision API with API key:', env.OPENAI_API_KEY ? 'Key is set' : 'Key is missing');
     let content;
     let data: Receipt;
 
@@ -182,7 +182,7 @@ Only respond with the JSON object, nothing else.`;
       }
 
       // 6. Save to Google Sheets if we're not just testing
-      if (outputFormat === 'json' && GOOGLE_SHEETS_ID) {
+      if (outputFormat === 'json' && env.GOOGLE_SHEETS_ID) {
         try {
           await appendReceipt(data);
         } catch (sheetErr) {
