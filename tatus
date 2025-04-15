@@ -1,0 +1,6 @@
+[33mad702ea[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mclean-branch[m[33m, [m[1;32mmain[m[33m)[m Remove sensitive information from .env.example
+[33m7508fe6[m UI overhaul with modern Web 3.0 style and fixed OpenAI service for server-side usage
+[33me145309[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Add API routes for integrations and update service files
+[33m3607e77[m Resolve merge conflict in README.md
+[33m46bd430[m Initial commit for Atlas Assistant
+[33m15fb0ea[m Initial commit
