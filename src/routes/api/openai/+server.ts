@@ -89,12 +89,22 @@ export const POST: RequestHandler = async ({ request }) => {
           }
         ];
 
-        const visionCompletion = await getOpenAIClient().chat.completions.create({
+        // Set a timeout for the OpenAI API call to prevent function timeout
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('OpenAI API call timed out')), 25000); // 25 second timeout
+        });
+
+        // Make the actual API call
+        const apiCallPromise = getOpenAIClient().chat.completions.create({
           model: 'gpt-4o',  // Updated to use gpt-4o which has vision capabilities
           messages: visionMessages,
           temperature: 0,
-          max_tokens: 1000
+          max_tokens: 500,  // reduced token limit for faster response
+          timeout: 25  // 25 second timeout in seconds
         });
+
+        // Race the timeout against the API call
+        const visionCompletion = await Promise.race([apiCallPromise, timeoutPromise]) as any;
 
         const content = visionCompletion.choices[0]?.message?.content || '';
 
@@ -124,8 +134,25 @@ export const POST: RequestHandler = async ({ request }) => {
       default:
         return json({ error: 'Invalid action' }, { status: 400 });
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in OpenAI API:', error);
-    return json({ error: 'Failed to process OpenAI request' }, { status: 500 });
+
+    // Check if it's a timeout error
+    if (error.message && error.message.includes('timed out')) {
+      return json({
+        error: 'The AI processing took too long. Please try again with simpler input.'
+      }, { status: 408 });
+    }
+
+    // Check if it's an authentication error
+    if (error.status === 401 || (error.message && error.message.includes('API key'))) {
+      return json({
+        error: 'Authentication error with the AI service. Please check your API configuration.'
+      }, { status: 401 });
+    }
+
+    return json({
+      error: `AI processing error: ${error.message || 'Unknown error'}`
+    }, { status: 500 });
   }
 };

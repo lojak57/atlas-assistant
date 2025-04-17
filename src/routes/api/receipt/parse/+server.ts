@@ -142,12 +142,22 @@ Only respond with the JSON object, nothing else.`;
     let data: Receipt;
 
     try {
-      const completion = await getOpenAIClient().chat.completions.create({
+      // Set a timeout for the OpenAI API call to prevent function timeout
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('OpenAI API call timed out')), 25000); // 25 second timeout
+      });
+
+      // Make the actual API call
+      const apiCallPromise = getOpenAIClient().chat.completions.create({
         model: "gpt-4o",  // using GPT-4o which has vision capabilities
         messages,
         temperature: 0,  // deterministic output
-        max_tokens: 1000  // plenty for a JSON output
+        max_tokens: 500,  // reduced token limit for faster response
+        timeout: 25  // 25 second timeout in seconds
       });
+
+      // Race the timeout against the API call
+      const completion = await Promise.race([apiCallPromise, timeoutPromise]) as any;
 
       content = completion.choices?.[0]?.message?.content;
       if (!content) {
@@ -224,9 +234,33 @@ Only respond with the JSON object, nothing else.`;
       } else {
         return json(data);
       }
-    } catch (openaiError) {
+    } catch (openaiError: any) {
       console.error('OpenAI API error:', openaiError);
-      return new Response(`OpenAI API error: ${openaiError.message || 'Unknown error'}`, { status: 500 });
+
+      // Check if it's a timeout error
+      if (openaiError.message && openaiError.message.includes('timed out')) {
+        return new Response('The image processing took too long. Please try with a smaller or clearer image.', {
+          status: 408,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Check if it's an authentication error
+      if (openaiError.status === 401 || (openaiError.message && openaiError.message.includes('API key'))) {
+        return new Response(JSON.stringify({
+          error: 'Authentication error with the AI service. Please check your API configuration.'
+        }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      return new Response(JSON.stringify({
+        error: `AI processing error: ${openaiError.message || 'Unknown error'}`
+      }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
   } catch (err) {
     console.error("Server error:", err);
