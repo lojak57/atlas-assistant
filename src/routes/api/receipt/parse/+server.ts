@@ -152,8 +152,7 @@ Only respond with the JSON object, nothing else.`;
         model: "gpt-4o",  // using GPT-4o which has vision capabilities
         messages,
         temperature: 0,  // deterministic output
-        max_tokens: 500,  // reduced token limit for faster response
-        timeout: 25  // 25 second timeout in seconds
+        max_tokens: 500  // reduced token limit for faster response
       });
 
       // Race the timeout against the API call

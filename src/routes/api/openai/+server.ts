@@ -99,8 +99,7 @@ export const POST: RequestHandler = async ({ request }) => {
           model: 'gpt-4o',  // Updated to use gpt-4o which has vision capabilities
           messages: visionMessages,
           temperature: 0,
-          max_tokens: 500,  // reduced token limit for faster response
-          timeout: 25  // 25 second timeout in seconds
+          max_tokens: 500  // reduced token limit for faster response
         });
 
         // Race the timeout against the API call
